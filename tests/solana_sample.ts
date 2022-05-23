@@ -13,6 +13,7 @@ describe('solana_sample', () => {
   const provider = anchor.AnchorProvider.env();
   const program = anchor.workspace.SolanaSample as Program<SolanaSample>;
   const baseAccount = anchor.web3.Keypair.generate();
+  const otherAccount = anchor.web3.Keypair.generate();
   const name = 'EzGame';
   anchor.setProvider(provider);
 
@@ -40,10 +41,12 @@ describe('solana_sample', () => {
 
   it('Update user name', async () => {
     const newName = 'EzGame Updated!';
-    const tx = await program.rpc.updateName(newName, {
+    await program.rpc.updateName(newName, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     assert.ok(account.name.toString() === newName);
@@ -55,7 +58,9 @@ describe('solana_sample', () => {
     await program.rpc.addNote(title, content, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     const notes: TNote[] = account.notes as any;
@@ -70,7 +75,9 @@ describe('solana_sample', () => {
     await program.rpc.updateNoteTitle(updateIndex, newTitle, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     const notes: TNote[] = account.notes as any;
@@ -84,7 +91,9 @@ describe('solana_sample', () => {
     await program.rpc.updateNoteContent(updateIndex, newContent, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     const notes: TNote[] = account.notes as any;
@@ -97,7 +106,9 @@ describe('solana_sample', () => {
     await program.rpc.updateNoteStatus(updateIndex, true, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     const notes: TNote[] = account.notes as any;
@@ -105,12 +116,30 @@ describe('solana_sample', () => {
     assert.ok(notes[0].done === true);
   });
 
+  it('Should not change other account', async () => {
+    const updateIndex = new anchor.BN(0);
+    try {
+      await program.rpc.removeNote(updateIndex, {
+        accounts: {
+          data: baseAccount.publicKey,
+          owner: baseAccount.publicKey,
+        },
+        signers: [otherAccount],
+      });
+      assert.fail("This should not happen");
+    } catch (e) {
+      assert.ok("Can't remove");
+    }
+  });
+
   it('Remove first note!', async () => {
     const updateIndex = new anchor.BN(0);
     await program.rpc.removeNote(updateIndex, {
       accounts: {
         data: baseAccount.publicKey,
+        owner: baseAccount.publicKey,
       },
+      signers: [baseAccount],
     });
     const account = await program.account.user.fetch(baseAccount.publicKey);
     const notes: TNote[] = account.notes as any;

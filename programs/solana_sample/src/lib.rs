@@ -12,6 +12,7 @@ pub mod solana_sample {
 
     pub fn create(ctx: Context<CreateAccount>, name: String) -> ProgramResult {
         let data = &mut ctx.accounts.data;
+        data.owner = data.clone().key();
         data.name = name;
         data.notes = [].to_vec();
         Ok(())
@@ -105,8 +106,9 @@ pub struct CreateAccount<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateData<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = owner)]
     pub data: Account<'info, User>,
+    pub owner: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -118,6 +120,7 @@ pub struct Note {
 
 #[account]
 pub struct User {
+    pub owner: Pubkey,
     pub name: String,
     pub notes: Vec<Note>,
 }
