@@ -55,9 +55,10 @@ const WalletLayout: IComponent = ({ children }) => {
   if (connected) {
     return (
       <div className="h-screen flex justify-center items-center flex-col">
-        <h3 className="my-12 text-3xl text-zinc-700">
+        <h3 className="mt-12 text-2xl text-zinc-700">
           WELCOME TO <span className="font-bold">TODOCHAIN</span>
         </h3>
+        <h3 className="mb-12 text-xl text-zinc-700 font-thin">Create your todo account</h3>
         <div className="flex flex-col w-96 mb-48">
           <label>USER NAME</label>
           <input

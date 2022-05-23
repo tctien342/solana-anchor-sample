@@ -38,6 +38,7 @@ export const useUserTodo = () => {
           },
         });
         refreshUserTodo();
+        setUserName(name);
         return true;
       } catch (e) {
         console.log('Cant create user', e);
