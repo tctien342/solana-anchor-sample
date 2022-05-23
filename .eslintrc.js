@@ -1,17 +1,19 @@
 module.exports = {
-  env: {
-    browser: true,
-    es2021: true,
-  },
-  extends: ['plugin:react/recommended', 'google', 'prettier'],
-  parser: '@typescript-eslint/parser',
+  root: true,
   parserOptions: {
-    ecmaFeatures: {
-      jsx: true,
-    },
-    ecmaVersion: 'latest',
     sourceType: 'module',
   },
-  plugins: ['react', '@typescript-eslint'],
-  rules: {},
+  env: { es6: true },
+  extends: ['next/core-web-vitals', 'prettier'],
+  plugins: ['simple-import-sort', 'import', 'prettier'],
+  rules: {
+    'prettier/prettier': 'error',
+    'arrow-body-style': 'off',
+    'prefer-arrow-callback': 'off',
+    'simple-import-sort/imports': 'error',
+    'simple-import-sort/exports': 'error',
+    'import/first': 'error',
+    'import/newline-after-import': 'error',
+    'import/no-duplicates': 'error',
+  },
 };
