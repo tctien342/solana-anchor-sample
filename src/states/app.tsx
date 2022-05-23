@@ -5,4 +5,14 @@ const darkStatusAtom = atom<boolean>({
   default: false,
 });
 
-export { darkStatusAtom };
+const userNameAtom = atom<string>({
+  key: 'userName',
+  default: '',
+});
+
+const userTodoAtom = atom<TTodo[]>({
+  key: 'userTodo',
+  default: [],
+});
+
+export { darkStatusAtom, userNameAtom, userTodoAtom };

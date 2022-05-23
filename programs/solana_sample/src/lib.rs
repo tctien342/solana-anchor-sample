@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::entrypoint::ProgramResult;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("ExZPBxvxdgz61raY3BmJ6uBfi3q4JcQ4ixGmCG517idu");
 
 const MAX_MESSAGE_LEN: usize = 128;
 const MAX_TODO_LEN: usize = 32;
@@ -96,19 +96,19 @@ pub struct CreateAccount<'info> {
      * Note: title + content + done = (4 + 60) + (4 + MAX_MESSAGE_LEN) + 1
      * --> Name + MAX_TODO_LEN * Note
      */
-    #[account(init, payer = user, space = 16 + 64 + ( 4 + MAX_TODO_LEN * (64 + 4 + MAX_MESSAGE_LEN + 1)))]
+    #[account(init, seeds = [b"user".as_ref(), authority.key().as_ref()], bump, payer = authority, space = 16 + 64 + ( 4 + MAX_TODO_LEN * (64 + 4 + MAX_MESSAGE_LEN + 1)))]
     pub data: Account<'info, User>,
 
     #[account(mut)]
-    pub user: Signer<'info>,
+    pub authority: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct UpdateData<'info> {
-    #[account(mut, has_one = owner)]
+    #[account(mut)]
     pub data: Account<'info, User>,
-    pub owner: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]

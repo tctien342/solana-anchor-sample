@@ -1,0 +1,10 @@
+.wallet-adapter-button-trigger {
+  background: white !important;
+  color: #444 !important;
+  border: 1px solid #999 !important;
+  transition: all 0.3s ease-in-out;
+  &:hover {
+    background: black !important;
+    color: white !important;
+  }
+}

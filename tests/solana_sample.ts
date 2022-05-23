@@ -1,20 +1,25 @@
-import * as assert from 'assert';
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
+import * as assert from 'assert';
 
 import { SolanaSample } from '../target/types/solana_sample';
 
 const { SystemProgram } = anchor.web3;
 
+const utf8 = anchor.utils.bytes.utf8;
+
 type TNote = { title: String; content: String; done: boolean };
 
-describe('solana_sample', () => {
+describe('solana_sample', async () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   const program = anchor.workspace.SolanaSample as Program<SolanaSample>;
-  const baseAccount = anchor.web3.Keypair.generate();
-  const otherAccount = anchor.web3.Keypair.generate();
   const name = 'EzGame';
+  let [userPda] = await anchor.web3.PublicKey.findProgramAddress(
+    [utf8.encode('user'), provider.wallet.publicKey.toBuffer()],
+    program.programId
+  );
+
   anchor.setProvider(provider);
 
   const handleNoteEvent = (ev) => console.log('UpdateNoteEvent ==> ', ev);
@@ -26,15 +31,14 @@ describe('solana_sample', () => {
   it('Is created!', async () => {
     const tx = await program.rpc.create('EzGame', {
       accounts: {
-        data: baseAccount.publicKey,
-        user: provider.wallet.publicKey,
+        data: userPda,
+        authority: provider.wallet.publicKey,
         systemProgram: SystemProgram.programId,
       },
-      signers: [baseAccount],
     });
     console.log('Your transaction signature', tx);
 
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     console.log('Default name: ', account.name.toString());
     assert.ok(account.name.toString() === name);
   });
@@ -43,12 +47,10 @@ describe('solana_sample', () => {
     const newName = 'EzGame Updated!';
     await program.rpc.updateName(newName, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     assert.ok(account.name.toString() === newName);
   });
 
@@ -57,12 +59,10 @@ describe('solana_sample', () => {
     const content = 'Work hard, work smart, play more fuck hard';
     await program.rpc.addNote(title, content, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     const notes: TNote[] = account.notes as any;
     assert.ok(notes.length === 1);
     assert.ok(notes[0].title === title);
@@ -74,12 +74,10 @@ describe('solana_sample', () => {
     const newTitle = 'Updated note 1';
     await program.rpc.updateNoteTitle(updateIndex, newTitle, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     const notes: TNote[] = account.notes as any;
     assert.ok(notes.length > 0);
     assert.ok(notes[0].title === newTitle);
@@ -90,12 +88,10 @@ describe('solana_sample', () => {
     const newContent = 'Content have been changed';
     await program.rpc.updateNoteContent(updateIndex, newContent, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     const notes: TNote[] = account.notes as any;
     assert.ok(notes.length > 0);
     assert.ok(notes[0].content === newContent);
@@ -105,12 +101,10 @@ describe('solana_sample', () => {
     const updateIndex = new anchor.BN(0);
     await program.rpc.updateNoteStatus(updateIndex, true, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     const notes: TNote[] = account.notes as any;
     assert.ok(notes.length > 0);
     assert.ok(notes[0].done === true);
@@ -121,12 +115,11 @@ describe('solana_sample', () => {
     try {
       await program.rpc.removeNote(updateIndex, {
         accounts: {
-          data: baseAccount.publicKey,
-          owner: baseAccount.publicKey,
+          data: userPda,
         },
         signers: [otherAccount],
       });
-      assert.fail("This should not happen");
+      assert.fail('This should not happen');
     } catch (e) {
       assert.ok("Can't remove");
     }
@@ -136,12 +129,10 @@ describe('solana_sample', () => {
     const updateIndex = new anchor.BN(0);
     await program.rpc.removeNote(updateIndex, {
       accounts: {
-        data: baseAccount.publicKey,
-        owner: baseAccount.publicKey,
+        data: userPda,
       },
-      signers: [baseAccount],
     });
-    const account = await program.account.user.fetch(baseAccount.publicKey);
+    const account = await program.account.user.fetch(userPda);
     const notes: TNote[] = account.notes as any;
     assert.ok(notes.length === 0);
   });
@@ -152,11 +143,11 @@ describe('solana_sample', () => {
   //     const content = `Note ${i}`;
   //     await program.rpc.addNote(title, content, {
   //       accounts: {
-  //         data: baseAccount.publicKey,
+  //         data: userPda,
   //       },
   //     });
   //   }
-  //   const account = await program.account.user.fetch(baseAccount.publicKey);
+  //   const account = await program.account.user.fetch(userPda);
   //   const notes: TNote[] = account.notes as any;
   //   assert.ok(notes.length === 32);
   // });
