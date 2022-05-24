@@ -11,78 +11,84 @@ pub mod solana_sample {
     use super::*;
 
     pub fn create(ctx: Context<CreateAccount>, name: String) -> ProgramResult {
-        let data = &mut ctx.accounts.data;
-        data.owner = data.clone().key();
+        let data = &mut ctx.accounts.storage;
+        data.owner = ctx.accounts.authority.key();
         data.name = name;
-        data.notes = [].to_vec();
+        data.todos = [].to_vec();
         Ok(())
     }
     pub fn update_name(ctx: Context<UpdateData>, name: String) -> ProgramResult {
-        let data = &mut ctx.accounts.data;
+        let data = &mut ctx.accounts.storage;
         data.name = name;
         emit!(UpdateNameEvent {
+            owner: data.owner,
             name: data.name.clone()
         });
         Ok(())
     }
 
-    pub fn add_note(ctx: Context<UpdateData>, title: String, content: String) -> ProgramResult {
-        let data = &mut ctx.accounts.data;
-        let note = Note {
+    pub fn add_todo(ctx: Context<UpdateData>, title: String, content: String) -> ProgramResult {
+        let data = &mut ctx.accounts.storage;
+        let todo = Todo {
             title,
             content,
             done: false,
         };
-        data.notes.push(note);
-        emit!(UpdateNoteEvent {
-            notes: data.notes.clone()
+        data.todos.push(todo);
+        emit!(UpdateTodoEvent {
+            owner: data.owner,
+            todos: data.todos.clone()
         });
         Ok(())
     }
 
-    pub fn remove_note(ctx: Context<UpdateData>, index: u64) -> ProgramResult {
+    pub fn remove_todo(ctx: Context<UpdateData>, index: u64) -> ProgramResult {
         let idx: usize = index.try_into().unwrap();
-        let data = &mut ctx.accounts.data;
-        data.notes.remove(idx);
-        emit!(UpdateNoteEvent {
-            notes: data.notes.clone()
+        let data = &mut ctx.accounts.storage;
+        data.todos.remove(idx);
+        emit!(UpdateTodoEvent {
+            owner: data.owner,
+            todos: data.todos.clone()
         });
         Ok(())
     }
 
-    pub fn update_note_title(ctx: Context<UpdateData>, index: u64, title: String) -> ProgramResult {
+    pub fn update_todo_title(ctx: Context<UpdateData>, index: u64, title: String) -> ProgramResult {
         let idx: usize = index.try_into().unwrap();
-        let data = &mut ctx.accounts.data;
-        let note = &mut data.notes[idx];
-        note.title = title;
-        emit!(UpdateNoteEvent {
-            notes: data.notes.clone()
+        let data = &mut ctx.accounts.storage;
+        let todo = &mut data.todos[idx];
+        todo.title = title;
+        emit!(UpdateTodoEvent {
+            owner: data.owner,
+            todos: data.todos.clone()
         });
         Ok(())
     }
 
-    pub fn update_note_content(
+    pub fn update_todo_content(
         ctx: Context<UpdateData>,
         index: u64,
         content: String,
     ) -> ProgramResult {
         let idx: usize = index.try_into().unwrap();
-        let data = &mut ctx.accounts.data;
-        let note = &mut data.notes[idx];
-        note.content = content;
-        emit!(UpdateNoteEvent {
-            notes: data.notes.clone()
+        let data = &mut ctx.accounts.storage;
+        let todo = &mut data.todos[idx];
+        todo.content = content;
+        emit!(UpdateTodoEvent {
+            owner: data.owner,
+            todos: data.todos.clone()
         });
         Ok(())
     }
 
-    pub fn update_note_status(ctx: Context<UpdateData>, index: u64, done: bool) -> ProgramResult {
+    pub fn update_todo_status(ctx: Context<UpdateData>, index: u64, done: bool) -> ProgramResult {
         let idx: usize = index.try_into().unwrap();
-        let data = &mut ctx.accounts.data;
-        let note = &mut data.notes[idx];
-        note.done = done;
-        emit!(UpdateNoteEvent {
-            notes: data.notes.clone()
+        let data = &mut ctx.accounts.storage;
+        let todo = &mut data.todos[idx];
+        todo.done = done;
+        emit!(UpdateTodoEvent {
+            owner: data.owner,
+            todos: data.todos.clone()
         });
         Ok(())
     }
@@ -93,11 +99,11 @@ pub struct CreateAccount<'info> {
     /**
      * Space for the data
      * Name: 4 + Maxlen(name) = 4 + 60 = 64
-     * Note: title + content + done = (4 + 60) + (4 + MAX_MESSAGE_LEN) + 1
-     * --> Name + MAX_TODO_LEN * Note
+     * Todo: title + content + done = (4 + 60) + (4 + MAX_MESSAGE_LEN) + 1
+     * --> Name + MAX_TODO_LEN * Todo
      */
     #[account(init, seeds = [b"user".as_ref(), authority.key().as_ref()], bump, payer = authority, space = 16 + 64 + ( 4 + MAX_TODO_LEN * (64 + 4 + MAX_MESSAGE_LEN + 1)))]
-    pub data: Account<'info, User>,
+    pub storage: Account<'info, User>,
 
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -107,12 +113,14 @@ pub struct CreateAccount<'info> {
 
 #[derive(Accounts)]
 pub struct UpdateData<'info> {
-    #[account(mut)]
-    pub data: Account<'info, User>,
+    #[account(mut, has_one = owner)]
+    pub storage: Account<'info, User>,
+
+    pub owner: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct Note {
+pub struct Todo {
     pub title: String,
     pub content: String,
     pub done: bool,
@@ -122,15 +130,17 @@ pub struct Note {
 pub struct User {
     pub owner: Pubkey,
     pub name: String,
-    pub notes: Vec<Note>,
+    pub todos: Vec<Todo>,
 }
 
 #[event]
-pub struct UpdateNoteEvent {
-    pub notes: Vec<Note>,
+pub struct UpdateTodoEvent {
+    pub owner: Pubkey,
+    pub todos: Vec<Todo>,
 }
 
 #[event]
 pub struct UpdateNameEvent {
+    pub owner: Pubkey,
     pub name: String,
 }
