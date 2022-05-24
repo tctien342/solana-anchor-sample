@@ -3,7 +3,7 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts,.json}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts,.json}\" --check",
     "app:dev": "next dev",
-    "app:build": "next build",
+    "app:build": "yarn anchor:test && next build",
     "app:start": "next start",
     "anchor:type": "cp ./target/types/*.ts ./src/types/contract.ts",
     "anchor:idl": "cp ./target/idl/*.json ./src/configs/contract.json",
