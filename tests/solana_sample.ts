@@ -56,7 +56,7 @@ describe('solana_sample', async () => {
     assert.ok(account.name.toString() === newName);
   });
 
-  it('Add first note!', async () => {
+  it('Add first todo!', async () => {
     const title = 'Working hard';
     const content = 'Work hard, work smart, play more fuck hard';
     await program.methods.addTodo(title, content).accounts({ storage: userPda }).rpc();
@@ -68,11 +68,12 @@ describe('solana_sample', async () => {
     assert.ok(todos[0].content === content);
   });
 
-  it('Update first note title', async () => {
+  it('Update todo', async () => {
     const updateIndex = new anchor.BN(0);
-    const newTitle = 'Updated note 1';
+    const newTitle = 'Updated todo 1';
+    const newContent = 'Updated todo 1';
     await program.methods
-      .updateTodoTitle(updateIndex, newTitle)
+      .updateTodo(updateIndex, newTitle, newContent)
       .accounts({ storage: userPda })
       .rpc();
 
@@ -80,23 +81,10 @@ describe('solana_sample', async () => {
     const todos: TTodo[] = account.todos as any;
     assert.ok(todos.length > 0);
     assert.ok(todos[0].title === newTitle);
-  });
-
-  it('Update first note content', async () => {
-    const updateIndex = new anchor.BN(0);
-    const newContent = 'Content have been changed';
-    await program.methods
-      .updateTodoContent(updateIndex, newContent)
-      .accounts({ storage: userPda })
-      .rpc();
-
-    const account = await program.account.user.fetch(userPda);
-    const todos: TTodo[] = account.todos as any;
-    assert.ok(todos.length > 0);
     assert.ok(todos[0].content === newContent);
   });
 
-  it('Mark first note as done', async () => {
+  it('Mark first todo as done', async () => {
     const updateIndex = new anchor.BN(0);
     await program.methods.updateTodoStatus(updateIndex, true).accounts({ storage: userPda }).rpc();
 
@@ -121,7 +109,7 @@ describe('solana_sample', async () => {
     }
   });
 
-  it('Remove first note!', async () => {
+  it('Remove first todo!', async () => {
     const updateIndex = new anchor.BN(0);
     await program.methods.removeTodo(updateIndex).accounts({ storage: userPda }).rpc();
 

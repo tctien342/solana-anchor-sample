@@ -1,23 +1,31 @@
 {
   "scripts": {
-    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts,.json}\" -w",
+    "lint": "prettier */*.js \"*/**/*{.js,.ts,.json}\" --check",
     "app:dev": "next dev",
     "app:build": "next build",
-    "app:start": "next start"
+    "app:start": "next start",
+    "anchor:type": "cp ./target/types/*.ts ./src/types/contract.ts",
+    "anchor:idl": "cp ./target/idl/*.json ./src/configs/contract.json",
+    "anchor:build": "anchor build && yarn anchor:type && yarn lint:fix",
+    "anchor:test": "yarn anchor:build && anchor test && yarn anchor:idl"
   },
   "dependencies": {
+    "@animxyz/react": "^0.6.6",
     "@project-serum/anchor": "^0.24.2",
+    "@saintno/needed-tools": "^0.1.1",
     "@solana/wallet-adapter-base": "^0.9.5",
     "@solana/wallet-adapter-react": "^0.15.5",
     "@solana/wallet-adapter-react-ui": "^0.9.7",
     "@solana/wallet-adapter-wallets": "^0.16.1",
     "@solana/web3.js": "^1.43.1",
+    "animate.css": "^4.1.1",
     "classnames": "^2.3.1",
     "intercept-stdout": "^0.1.2",
     "next": "^12.1.6",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
+    "react-transition-group": "^4.4.2",
     "recoil": "^0.7.3-alpha.2",
     "sass": "^1.52.1"
   },
@@ -26,6 +34,7 @@
     "@types/intercept-stdout": "^0.1.0",
     "@types/mocha": "^9.1.1",
     "@types/react": "^18.0.9",
+    "@types/react-transition-group": "^4.4.4",
     "@typescript-eslint/eslint-plugin": "^5.25.0",
     "@typescript-eslint/parser": "^5.25.0",
     "autoprefixer": "^10.4.7",

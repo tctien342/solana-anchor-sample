@@ -1,18 +1,18 @@
-import { useUserTodo } from '@hooks/useUserTodo';
-import { WalletLayout } from '@layouts/walletLayout';
+import { useTodoSmartContract } from '@hooks/useTodoSmartContract';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { userNameAtom } from '@states/app';
+import { userNameAtom, userTodoAtom } from '@states/app';
 import { useEffect, useRef } from 'react';
 import { useRecoilValue } from 'recoil';
 
 const DefaultPage: IPageComponent = () => {
   const { disconnect } = useWallet();
   const name = useRecoilValue(userNameAtom);
-  const { todos, getUserData, createTodo, changeTodoStatus } = useUserTodo();
+  const todos = useRecoilValue(userTodoAtom);
+
+  const { reloadUserData, addTodo, changeTodoStatus } = useTodoSmartContract();
+
   const titleRef = useRef('');
   const contentRef = useRef('');
-
-  console.log(todos);
 
   const handleLogout = () => {
     void disconnect();
@@ -20,13 +20,13 @@ const DefaultPage: IPageComponent = () => {
 
   const handlePressCreate = () => {
     if (titleRef.current.length > 0 && contentRef.current.length > 0) {
-      createTodo(titleRef.current, contentRef.current);
+      addTodo(titleRef.current, contentRef.current);
     }
   };
 
   useEffect(() => {
-    getUserData();
-  }, []);
+    reloadUserData();
+  }, [reloadUserData]);
 
   return (
     <div className="h-screen bg-white text-zinc-700 flex flex-col relative">
@@ -95,6 +95,6 @@ const DefaultPage: IPageComponent = () => {
   );
 };
 
-DefaultPage.getLayout = (children) => <WalletLayout>{children}</WalletLayout>;
+DefaultPage.getLayout = (children) => children;
 
 export default DefaultPage;

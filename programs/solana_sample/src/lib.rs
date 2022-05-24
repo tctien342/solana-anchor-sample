@@ -53,26 +53,16 @@ pub mod solana_sample {
         Ok(())
     }
 
-    pub fn update_todo_title(ctx: Context<UpdateData>, index: u64, title: String) -> ProgramResult {
-        let idx: usize = index.try_into().unwrap();
-        let data = &mut ctx.accounts.storage;
-        let todo = &mut data.todos[idx];
-        todo.title = title;
-        emit!(UpdateTodoEvent {
-            owner: data.owner,
-            todos: data.todos.clone()
-        });
-        Ok(())
-    }
-
-    pub fn update_todo_content(
+    pub fn update_todo(
         ctx: Context<UpdateData>,
         index: u64,
+        title: String,
         content: String,
     ) -> ProgramResult {
         let idx: usize = index.try_into().unwrap();
         let data = &mut ctx.accounts.storage;
         let todo = &mut data.todos[idx];
+        todo.title = title;
         todo.content = content;
         emit!(UpdateTodoEvent {
             owner: data.owner,
