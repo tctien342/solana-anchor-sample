@@ -1,11 +1,13 @@
 import { gLog } from '@pages/_app';
 import { BN } from '@project-serum/anchor';
-import { SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import { userNameAtom, userTodoAtom } from '@states/app';
 import { useState } from 'react';
 import { useRecoilState } from 'recoil';
 
 import { useWorkspace } from './useWorkspace';
+
+let rawTodo: { publicKey: PublicKey; account: TTodo }[];
 
 export const useTodoSmartContract = () => {
   const { program, wallet, userPda } = useWorkspace();
@@ -14,13 +16,27 @@ export const useTodoSmartContract = () => {
   const [loading, setLoading] = useState(false);
 
   const reloadUserData = async () => {
-    if (userPda) {
+    if (userPda && !!wallet) {
       setLoading(true);
       try {
         const data = await program?.account.user.fetch(userPda);
+        rawTodo = (await program?.account.todo.all([
+          {
+            memcmp: {
+              offset: 8,
+              bytes: wallet.publicKey.toBase58(),
+            },
+          },
+        ])) as any;
+        const todos = rawTodo?.map((v) => ({
+          title: v.account.title,
+          content: v.account.content,
+          done: v.account.done,
+        }));
+
         if (data) {
           setUserName(data.name);
-          setTodos(data.todos as TTodo[]);
+          setTodos(todos || []);
           gLog.i('reloadUserData', 'Request data success', data);
           return true;
         }
@@ -59,6 +75,7 @@ export const useTodoSmartContract = () => {
           .updateName(name)
           .accounts({
             storage: userPda,
+            owner: wallet.publicKey,
           })
           .rpc();
         gLog.i('changeName', 'Success change name');
@@ -73,11 +90,15 @@ export const useTodoSmartContract = () => {
   const addTodo = async (title: string, content: string) => {
     if (userPda && wallet) {
       try {
+        const keypair = Keypair.generate();
         await program?.methods
           .addTodo(title, content)
           .accounts({
-            storage: userPda,
+            storage: keypair.publicKey,
+            authority: wallet.publicKey,
+            systemProgram: SystemProgram.programId,
           })
+          .signers([keypair])
           .rpc();
         gLog.i('addTodo', 'Success add new todo');
         return true;
@@ -92,9 +113,10 @@ export const useTodoSmartContract = () => {
     if (userPda && wallet) {
       try {
         await program?.methods
-          .updateTodo(new BN(id), title, content)
+          .updateTodo(title, content)
           .accounts({
-            storage: userPda,
+            storage: rawTodo[id].publicKey,
+            owner: userPda,
           })
           .rpc();
         gLog.i('updateTodo', 'Success update todo: ', id);
@@ -110,9 +132,10 @@ export const useTodoSmartContract = () => {
     if (userPda && wallet) {
       try {
         await program?.methods
-          .updateTodoStatus(new BN(id), status)
+          .updateTodoStatus(status)
           .accounts({
-            storage: userPda,
+            storage: rawTodo[id].publicKey,
+            owner: userPda,
           })
           .rpc();
         gLog.i('changeTodoStatus', 'Success update todo status: ', id);
@@ -128,9 +151,10 @@ export const useTodoSmartContract = () => {
     if (userPda && wallet) {
       try {
         await program?.methods
-          .removeTodo(new BN(id))
+          .removeTodo()
           .accounts({
-            storage: userPda,
+            storage: rawTodo[id].publicKey,
+            owner: userPda,
           })
           .rpc();
         gLog.i('removeTodo', 'Success remove todo: ', id);

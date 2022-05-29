@@ -1,6 +1,6 @@
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import * as assert from 'assert';
 
 import { SolanaSample } from '../target/types/solana_sample';
@@ -11,28 +11,49 @@ const utf8 = anchor.utils.bytes.utf8;
 
 type TTodo = { title: String; content: String; done: boolean };
 
-describe('solana_sample', async () => {
+describe('solana_sample', () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   const program = anchor.workspace.SolanaSample as Program<SolanaSample>;
-  let [userPda] = await anchor.web3.PublicKey.findProgramAddress(
-    [utf8.encode('user'), provider.wallet.publicKey.toBuffer()],
-    program.programId
-  );
-  const otherAccount = anchor.web3.Keypair.generate();
-
   anchor.setProvider(provider);
+
   console.log('CURRENT ADDRESS ==>', provider.wallet.publicKey.toString());
 
-  const handleTodoEvent = (ev: { owner: PublicKey; todos: TTodo[] }) =>
-    console.log('UpdateTodoEvent ==> ', { address: ev.owner.toString(), todos: ev.todos });
+  const handleTodoEvent = (ev: { owner: PublicKey } & TTodo) =>
+    console.log('UpdateTodoEvent ==> ', {
+      address: ev.owner.toString(),
+      todo: { title: ev.title, content: ev.content, done: ev.done },
+    });
   const handleNameEvent = (ev: { owner: PublicKey; name: string }) =>
     console.log('UpdateNameEvent ==> ', { address: ev.owner.toString(), name: ev.name });
 
   const noteListener = program.addEventListener('UpdateTodoEvent', handleTodoEvent);
   const nameListener = program.addEventListener('UpdateNameEvent', handleNameEvent);
 
+  let userPda: PublicKey;
+  let selectedTodo: PublicKey;
+  let otherAccount = Keypair.generate();
+
+  // Add money for other account
+  before(async () => {
+    const { publicKey } = provider.wallet;
+    const { publicKey: otherPublicKey } = otherAccount;
+    const tx = new Transaction();
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: otherPublicKey,
+        lamports: 1000000000,
+      })
+    );
+    await provider.sendAndConfirm(tx);
+  });
+
   it('Is created!', async () => {
+    [userPda] = await anchor.web3.PublicKey.findProgramAddress(
+      [utf8.encode('user'), provider.wallet.publicKey.toBuffer()],
+      program.programId
+    );
     const name = 'EzGame';
     await program.methods
       .create(name)
@@ -59,47 +80,93 @@ describe('solana_sample', async () => {
   it('Add first todo!', async () => {
     const title = 'Working hard';
     const content = 'Work hard, work smart, play more fuck hard';
-    await program.methods.addTodo(title, content).accounts({ storage: userPda }).rpc();
+    const keypair = Keypair.generate();
+    await program.methods
+      .addTodo(title, content)
+      .accounts({
+        storage: keypair.publicKey,
+        authority: provider.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([keypair])
+      .rpc();
 
-    const account = await program.account.user.fetch(userPda);
-    const todos: TTodo[] = account.todos as any;
-    assert.ok(todos.length === 1);
-    assert.ok(todos[0].title === title);
-    assert.ok(todos[0].content === content);
+    const todo = await program.account.todo.fetch(keypair.publicKey);
+    assert.ok(todo.title === title);
+    assert.ok(todo.content === content);
+  });
+
+  it('Add second todo!', async () => {
+    const title = 'Working hard #2';
+    const content = 'Work hard, work smart, play more fuck hard #2';
+    const keypair = Keypair.generate();
+    await program.methods
+      .addTodo(title, content)
+      .accounts({
+        storage: keypair.publicKey,
+        authority: provider.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([keypair])
+      .rpc();
+
+    const todo = await program.account.todo.fetch(keypair.publicKey);
+    assert.ok(todo.title === title);
+    assert.ok(todo.content === content);
+  });
+
+  it('Should get todo correctly', async () => {
+    const allTodo = await program.account.todo.all([
+      {
+        memcmp: {
+          offset: 8,
+          bytes: provider.wallet.publicKey.toBase58(),
+        },
+      },
+    ]);
+    assert.ok(allTodo.length === 2);
+
+    const otherTodos = await program.account.todo.all([
+      {
+        memcmp: {
+          offset: 8,
+          bytes: otherAccount.publicKey.toBase58(),
+        },
+      },
+    ]);
+    assert.ok(otherTodos.length === 0);
+
+    selectedTodo = allTodo[0].publicKey;
   });
 
   it('Update todo', async () => {
-    const updateIndex = new anchor.BN(0);
     const newTitle = 'Updated todo 1';
     const newContent = 'Updated todo 1';
     await program.methods
-      .updateTodo(updateIndex, newTitle, newContent)
-      .accounts({ storage: userPda })
+      .updateTodo(newTitle, newContent)
+      .accounts({ storage: selectedTodo, owner: provider.wallet.publicKey })
       .rpc();
 
-    const account = await program.account.user.fetch(userPda);
-    const todos: TTodo[] = account.todos as any;
-    assert.ok(todos.length > 0);
-    assert.ok(todos[0].title === newTitle);
-    assert.ok(todos[0].content === newContent);
+    const todo = await program.account.todo.fetch(selectedTodo);
+    assert.ok(todo.title === newTitle);
+    assert.ok(todo.content === newContent);
   });
 
   it('Mark first todo as done', async () => {
-    const updateIndex = new anchor.BN(0);
-    await program.methods.updateTodoStatus(updateIndex, true).accounts({ storage: userPda }).rpc();
+    await program.methods
+      .updateTodoStatus(true)
+      .accounts({ storage: selectedTodo, owner: provider.wallet.publicKey })
+      .rpc();
 
-    const account = await program.account.user.fetch(userPda);
-    const todos: TTodo[] = account.todos as any;
-    assert.ok(todos.length > 0);
-    assert.ok(todos[0].done === true);
+    const todo = await program.account.todo.fetch(selectedTodo);
+    assert.ok(todo.done === true);
   });
 
   it('Should not change other account', async () => {
-    const updateIndex = new anchor.BN(0);
     try {
       await program.methods
-        .removeTodo(updateIndex)
-        .accounts({ storage: userPda })
+        .removeTodo()
+        .accounts({ storage: selectedTodo, owner: otherAccount.publicKey })
         .signers([otherAccount])
         .rpc();
 
@@ -110,12 +177,17 @@ describe('solana_sample', async () => {
   });
 
   it('Remove first todo!', async () => {
-    const updateIndex = new anchor.BN(0);
-    await program.methods.removeTodo(updateIndex).accounts({ storage: userPda }).rpc();
+    await program.methods
+      .removeTodo()
+      .accounts({ storage: selectedTodo, owner: provider.wallet.publicKey })
+      .rpc();
 
-    const account = await program.account.user.fetch(userPda);
-    const todos: TTodo[] = account.todos as any;
-    assert.ok(todos.length === 0);
+    try {
+      const todo = await program.account.todo.fetch(selectedTodo);
+      assert.fail('This account should be removed');
+    } catch (e) {
+      assert.ok('Account removed');
+    }
   });
 
   it('Removed all listener', async () => {

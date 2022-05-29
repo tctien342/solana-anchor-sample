@@ -55,12 +55,17 @@ export type SolanaSample = {
         {
           name: 'storage';
           isMut: true;
-          isSigner: false;
+          isSigner: true;
         },
         {
-          name: 'owner';
-          isMut: false;
+          name: 'authority';
+          isMut: true;
           isSigner: true;
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
         }
       ];
       args: [
@@ -88,12 +93,7 @@ export type SolanaSample = {
           isSigner: true;
         }
       ];
-      args: [
-        {
-          name: 'index';
-          type: 'u64';
-        }
-      ];
+      args: [];
     },
     {
       name: 'updateTodo';
@@ -110,10 +110,6 @@ export type SolanaSample = {
         }
       ];
       args: [
-        {
-          name: 'index';
-          type: 'u64';
-        },
         {
           name: 'title';
           type: 'string';
@@ -140,10 +136,6 @@ export type SolanaSample = {
       ];
       args: [
         {
-          name: 'index';
-          type: 'u64';
-        },
-        {
           name: 'done';
           type: 'bool';
         }
@@ -151,6 +143,34 @@ export type SolanaSample = {
     }
   ];
   accounts: [
+    {
+      name: 'todo';
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'owner';
+            type: 'publicKey';
+          },
+          {
+            name: 'title';
+            type: 'string';
+          },
+          {
+            name: 'content';
+            type: 'string';
+          },
+          {
+            name: 'done';
+            type: 'bool';
+          },
+          {
+            name: 'removed';
+            type: 'bool';
+          }
+        ];
+      };
+    },
     {
       name: 'user';
       type: {
@@ -163,36 +183,6 @@ export type SolanaSample = {
           {
             name: 'name';
             type: 'string';
-          },
-          {
-            name: 'todos';
-            type: {
-              vec: {
-                defined: 'Todo';
-              };
-            };
-          }
-        ];
-      };
-    }
-  ];
-  types: [
-    {
-      name: 'Todo';
-      type: {
-        kind: 'struct';
-        fields: [
-          {
-            name: 'title';
-            type: 'string';
-          },
-          {
-            name: 'content';
-            type: 'string';
-          },
-          {
-            name: 'done';
-            type: 'bool';
           }
         ];
       };
@@ -203,16 +193,9 @@ export type SolanaSample = {
       name: 'UpdateTodoEvent';
       fields: [
         {
-          name: 'owner';
-          type: 'publicKey';
-          index: false;
-        },
-        {
-          name: 'todos';
+          name: 'todo';
           type: {
-            vec: {
-              defined: 'Todo';
-            };
+            defined: 'Todo';
           };
           index: false;
         }
@@ -293,12 +276,17 @@ export const IDL: SolanaSample = {
         {
           name: 'storage',
           isMut: true,
-          isSigner: false,
+          isSigner: true,
         },
         {
-          name: 'owner',
-          isMut: false,
+          name: 'authority',
+          isMut: true,
           isSigner: true,
+        },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
         },
       ],
       args: [
@@ -326,12 +314,7 @@ export const IDL: SolanaSample = {
           isSigner: true,
         },
       ],
-      args: [
-        {
-          name: 'index',
-          type: 'u64',
-        },
-      ],
+      args: [],
     },
     {
       name: 'updateTodo',
@@ -348,10 +331,6 @@ export const IDL: SolanaSample = {
         },
       ],
       args: [
-        {
-          name: 'index',
-          type: 'u64',
-        },
         {
           name: 'title',
           type: 'string',
@@ -378,10 +357,6 @@ export const IDL: SolanaSample = {
       ],
       args: [
         {
-          name: 'index',
-          type: 'u64',
-        },
-        {
           name: 'done',
           type: 'bool',
         },
@@ -389,6 +364,34 @@ export const IDL: SolanaSample = {
     },
   ],
   accounts: [
+    {
+      name: 'todo',
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'owner',
+            type: 'publicKey',
+          },
+          {
+            name: 'title',
+            type: 'string',
+          },
+          {
+            name: 'content',
+            type: 'string',
+          },
+          {
+            name: 'done',
+            type: 'bool',
+          },
+          {
+            name: 'removed',
+            type: 'bool',
+          },
+        ],
+      },
+    },
     {
       name: 'user',
       type: {
@@ -402,36 +405,6 @@ export const IDL: SolanaSample = {
             name: 'name',
             type: 'string',
           },
-          {
-            name: 'todos',
-            type: {
-              vec: {
-                defined: 'Todo',
-              },
-            },
-          },
-        ],
-      },
-    },
-  ],
-  types: [
-    {
-      name: 'Todo',
-      type: {
-        kind: 'struct',
-        fields: [
-          {
-            name: 'title',
-            type: 'string',
-          },
-          {
-            name: 'content',
-            type: 'string',
-          },
-          {
-            name: 'done',
-            type: 'bool',
-          },
         ],
       },
     },
@@ -441,16 +414,9 @@ export const IDL: SolanaSample = {
       name: 'UpdateTodoEvent',
       fields: [
         {
-          name: 'owner',
-          type: 'publicKey',
-          index: false,
-        },
-        {
-          name: 'todos',
+          name: 'todo',
           type: {
-            vec: {
-              defined: 'Todo',
-            },
+            defined: 'Todo',
           },
           index: false,
         },
