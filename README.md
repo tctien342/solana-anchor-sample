@@ -6,7 +6,7 @@
 
 # Folder Structure
 
-```bash
+```
 ├── programs------------------------ Solana contract's source code
 │   └── solana_sample
 │       └── src
